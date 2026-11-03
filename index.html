@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#101827">
+<title>KOMBILING RUN</title>
+<style>
+:root{--mint:#79f2d0;--gold:#ffd166;--panel:#1b2b43;--ink:#eff7ff}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#0e1726;color:var(--ink);font-family:system-ui,Arial;touch-action:manipulation}
+body{display:flex;justify-content:center;padding:12px}
+.app{width:min(100%,560px);padding-bottom:18px}
+header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:2px 2px 10px}
+h1{font-size:clamp(22px,6vw,32px);letter-spacing:2px;color:var(--mint);margin:0}
+.sub{font-size:11px;color:#9eb2cc}
+.panel{background:var(--panel);border:1px solid #344a68;border-radius:16px;padding:12px;margin:9px 0}
+canvas{display:block;width:100%;height:auto;border-radius:15px;border:2px solid #405878;background:#9bd8ee;box-shadow:0 10px 30px #0005;touch-action:pan-y}
+.hud{display:flex;justify-content:space-between;position:relative;margin:0 4px -39px;z-index:2;pointer-events:none;font-weight:900;text-shadow:0 2px 4px #000}
+.hud span{background:#102033d9;padding:7px 10px;border-radius:10px;font-size:13px}
+.hud .level{color:#9cf5d8}.hud .wallet{color:#ffdf78}
+.controls,.actions{display:flex;gap:8px;flex-wrap:wrap}
+button,select,input{font:inherit;border:0;border-radius:12px;padding:11px 12px}
+button{background:var(--mint);color:#102033;font-weight:850;flex:1;min-width:95px}
+button.gold{background:var(--gold)}button.dark{background:#344a68;color:white}button.pink{background:#ff91bd}
+button:active{transform:scale(.98)}
+input,select{background:#0e1a2b;color:white;border:1px solid #49617f;min-width:0}
+label{font-size:12px;color:#b9cbe0;display:block;margin:8px 0 4px}
+.row{display:flex;gap:8px;align-items:center}.row>*{flex:1}
+h2{font-size:16px;margin:0 0 8px;color:var(--mint)}
+.small{font-size:12px;color:#aebfd4;line-height:1.45}
+#message{min-height:18px;text-align:center;font-size:13px;color:#ffe39a;margin:8px}
+#shopPanel{display:none}
+.skinGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.skin{background:#263a56;border:1px solid #49617f;border-radius:12px;padding:9px;text-align:left}
+.skin strong{display:block}.skin small{color:#c0d0e4}
+#overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;background:#081323b9;border-radius:13px;padding:20px}
+.gamebox{position:relative}
+#overlay h2{font-size:27px;color:white;margin-bottom:8px}
+#overlay p{font-size:13px;color:#e1ebf8}
+#overlay .inner{max-width:300px}
+.hidden{display:none!important}
+@media(min-width:480px){.skinGrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+</style>
+</head>
+<body>
+<div class="app">
+<header><div><h1>KOMBILING RUN</h1><div class="sub">LARI • LOMPAT • KUMPULKAN KOIN</div></div><div style="text-align:right;font-size:12px">BEST<br><b id="bestTop">0</b></div></header>
+
+<div class="gamebox">
+ <div class="hud"><span class="level">LEVEL <b id="level">1</b></span><span class="wallet">🪙 <b id="coins">0</b></span></div>
+ <canvas id="game" width="520" height="650"></canvas>
+ <div id="overlay"><div class="inner"><h2>KOMBILING RUN</h2><p>Hindari jebakan, kumpulkan koin, dan buka karakter baru!</p><button id="overlayBtn">MULAI MAIN</button></div></div>
+</div>
+<div id="message">Pilih karakter dan nama, lalu mulai berlari!</div>
+<div class="controls">
+ <button id="jumpBtn">LOMPAT ⤴</button><button class="gold" id="pauseBtn">PAUSE Ⅱ</button><button class="dark" id="musicBtn">MUSIK: OFF ♪</button>
+</div>
+<div class="panel">
+ <h2>Profil Pelari</h2>
+ <div class="row"><div><label for="playerName">Nama karakter</label><input id="playerName" maxlength="12" value="Zerxx" placeholder="Nama kamu"></div>
+ <div><label for="world">Tempat</label><select id="world"><option value="city">Perkotaan 🌆</option><option value="village">Pedesaan 🌾</option></select></div></div>
+ <label for="kind">Jenis karakter</label><select id="kind"><option value="boy">Cowok 🧑</option><option value="girl">Cewek 👩</option><option value="cat">Kucing 🐱</option><option value="dog">Anjing 🐶</option><option value="fox">Rubah 🦊</option></select>
+ <div class="small">Nama akan muncul di atas karakter saat bermain. Skin yang sudah dibeli tersimpan di perangkat.</div>
+</div>
+<div class="panel">
+ <h2>Menu & Hadiah</h2>
+ <div class="actions"><button class="gold" id="shopBtn">TOKO SKIN 🛍️</button><button class="pink" id="dailyBtn">HADIAH HARIAN 🎁</button><button class="dark" id="scoresBtn">REKOR 🏆</button></div>
+ <div id="shopPanel"><hr style="border-color:#405878"><div class="small" style="margin:8px 0">Pilih karakter. Skin gratis bisa langsung dipakai; skin lain dibeli dengan koin.</div><div class="skinGrid" id="skinGrid"></div></div>
+ <div id="scoresPanel" class="small hidden"></div>
+</div>
+<div class="panel small">Power-up: perisai 🛡️ melindungi dari satu tabrakan, magnet 🧲 menarik koin. Ambil ikon power-up saat berlari. Musik dibuat khusus dengan nada sederhana dan bisa dimatikan.</div>
+</div>
+<script>
+(()=> {
+const $=id=>document.getElementById(id),c=$('game'),ctx=c.getContext('2d');
+const W=520,H=650,ground=548;
+let mode='ready',frame=0,score=0,speed=5,level=1,obstacles=[],coins=[],powers=[],particles=[];
+let wallet=+(localStorage.krWallet||0),best=+(localStorage.krBest||0),shield=0,magnet=0;
+let world='city',kind='boy',name='Zerxx',music=false,audio=null,melodyTimer=null,note=0;
+const owned=JSON.parse(localStorage.krOwned||'["mint"]'),activeSkin=localStorage.krSkin||'mint';
+let skin=activeSkin;
+const skins=[
+{id:'mint',name:'Mint Runner',cost:0,color:'#79f2d0',kind:'boy'},
+{id:'sun',name:'Sunshine',cost:35,color:'#ffd166',kind:'girl'},
+{id:'berry',name:'Berry Pop',cost:65,color:'#ff80b7',kind:'girl'},
+{id:'ocean',name:'Ocean Blue',cost:85,color:'#72baff',kind:'boy'},
+{id:'violet',name:'Violet Fox',cost:110,color:'#b49aff',kind:'fox'},
+{id:'panda',name:'Panda',cost:130,color:'#f1f3f5',kind:'cat'},
+{id:'orange',name:'Orange Cat',cost:150,color:'#ffad65',kind:'cat'},
+{id:'leaf',name:'Leaf Dog',cost:175,color:'#9bdc8a',kind:'dog'}
+];
+const p={x:100,y:ground-62,w:42,h:62,vy:0,onGround:true};
+function save(){localStorage.krWallet=wallet;localStorage.krOwned=JSON.stringify(owned);localStorage.krSkin=skin}
+function hud(){$('coins').textContent=wallet;$('bestTop').textContent=best;$('level').textContent=level}
+function say(t){$('message').textContent=t}
+function showOverlay(title,desc,btn){$('overlay').classList.remove('hidden');$('overlay').querySelector('h2').textContent=title;$('overlay').querySelector('p').textContent=desc;$('overlayBtn').textContent=btn}
+function hideOverlay(){$('overlay').classList.add('hidden')}
+function start(){mode='play';frame=0;score=0;speed=5;level=1;obstacles=[];coins=[];powers=[];particles=[];shield=0;magnet=0;p.y=ground-p.h;p.vy=0;p.onGround=true;hideOverlay();say('Ayo '+name+'! Hindari jebakan!')}
+function jump(){if(mode!=='play'){if(mode==='ready'||mode==='over')start();return}if(p.onGround){p.vy=-15.5;p.onGround=false;burst(p.x+20,p.y+50,'#fff2b0',5)}}
+function pause(){if(mode==='play'){mode='pause';showOverlay('DIJEDA','Istirahat sebentar. Tekan lanjut untuk bermain lagi.','LANJUT')}else if(mode==='pause'){mode='play';hideOverlay()}}
+function buyOrSelect(id){let s=skins.find(x=>x.id===id);if(!s)return;if(!owned.includes(id)){if(wallet<s.cost){say('Koin belum cukup untuk '+s.name+'!');return}wallet-=s.cost;owned.push(id);say(s.name+' berhasil dibeli!')}else say(s.name+' dipakai!');skin=id;kind=s.kind; $('kind').value=kind;save();hud();renderShop()}
+function renderShop(){$('skinGrid').innerHTML='';skins.forEach(s=>{let b=document.createElement('button');b.className='skin';b.innerHTML='<strong>'+s.name+'</strong><small>'+(owned.includes(s.id)?(skin===s.id?'✓ Dipakai':'Sudah dimiliki'):'🪙 '+s.cost)+'</small>';b.onclick=()=>buyOrSelect(s.id);$('skinGrid').appendChild(b)})}
+function daily(){let today=new Date().toLocaleDateString('en-CA');if(localStorage.krDaily===today){say('Hadiah hari ini sudah diambil. Besok balik lagi!');return}wallet+=25;localStorage.krDaily=today;save();hud();say('Hadiah harian +25 koin! 🎁')}
+function showScores(){$('scoresPanel').classList.toggle('hidden');$('scoresPanel').textContent='Rekor terbaik: '+best+' poin. Rekor tersimpan di perangkat ini.'}
+function audioStart(){if(!audio)audio=new (window.AudioContext||window.webkitAudioContext)();audio.resume();music=true;$('musicBtn').textContent='MUSIK: ON ♪';if(melodyTimer)return;const seq=[261.6,329.6,392,329.6,293.7,349.2,440,349.2];melodyTimer=setInterval(()=>{if(!music)return;let o=audio.createOscillator(),g=audio.createGain();o.type='triangle';o.frequency.value=seq[note++%seq.length];g.gain.setValueAtTime(.0001,audio.currentTime);g.gain.exponentialRampToValueAtTime(.045,audio.currentTime+.03);g.gain.exponentialRampToValueAtTime(.0001,audio.currentTime+.22);o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+.23)},260)}
+function musicToggle(){if(music){music=false;$('musicBtn').textContent='MUSIK: OFF ♪'}else audioStart()}
+function beep(freq=500,dur=.09){if(!audio)return;let o=audio.createOscillator(),g=audio.createGain();o.frequency.value=freq;g.gain.value=.045;o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+dur)}
+function burst(x,y,color,n){for(let i=0;i<n;i++)particles.push({x,y,vx:(Math.random()-.5)*5,vy:(Math.random()-.5)*5,life:25,color})}
+function addObstacle(){let r=Math.random();if(r<.42)obstacles.push({type:'spike',x:W+20,w:40,h:42});else if(r<.75)obstacles.push({type:'bomb',x:W+20,w:38,h:38});else obstacles.push({type:'pit',x:W+20,w:75,h:28})}
+function collision(){for(let o of obstacles){let px=p.x+8,pr=p.x+p.w-7,py=p.y+8,pb=p.y+p.h-3;if(o.type==='pit'){if(pr>o.x+8&&px<o.x+o.w-8&&p.y+p.h>=ground-2)return true}else if(pr>o.x+5&&px<o.x+o.w-5&&pb>ground-o.h)return true}return false}
+function collect(){coins=coins.filter(o=>{let d=Math.hypot((p.x+p.w/2)-o.x,(p.y+p.h/2)-o.y);if(d<28||(magnet>0&&d<145)){wallet++;beep(850,.06);burst(o.x,o.y,'#ffd166',4);return false}return true})}
+function drawBackground(){
+ let g=ctx.createLinearGradient(0,0,0,H);if(world==='city'){g.addColorStop(0,'#82cce9');g.addColorStop(1,'#e7c9a0')}else{g.addColorStop(0,'#8bd5ef');g.addColorStop(1,'#e8efb0')}ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+ ctx.fillStyle='#fff7';ctx.beginPath();ctx.arc(420,95,34,0,7);ctx.fill();
+ if(world==='city'){for(let i=0;i<8;i++){let x=((i*92-(frame*speed*.25)%740)+740)%740-100,h=130+(i*37%150);ctx.fillStyle=['#6b8397','#8399a9','#536d85'][i%3];ctx.fillRect(x,ground-h,65,h);ctx.fillStyle='#ffe9a7';for(let yy=ground-h+15;yy<ground-12;yy+=25)for(let xx=x+12;xx<x+58;xx+=23)ctx.fillRect(xx,yy,9,12)}}else{ctx.fillStyle='#62b879';for(let i=0;i<6;i++){let x=((i*120-frame*speed*.2)%700+700)%700-80;ctx.beginPath();ctx.arc(x,ground-80-(i%3)*24,58,Math.PI,0);ctx.fill();ctx.fillRect(x-58,ground-80-(i%3)*24,116,80)}ctx.fillStyle='#e9dc8c';ctx.fillRect(0,ground-10,W,20)}
+ ctx.fillStyle=world==='city'?'#586d77':'#7b9c54';ctx.fillRect(0,ground,W,H-ground);ctx.fillStyle='#e8d8b1';ctx.fillRect(0,ground,W,7);
+ for(let x=0;x<W;x+=52){let xx=(x-(frame*speed)%52+52)%W;ctx.fillStyle='#ffffff55';ctx.fillRect(xx,ground+35,25,4)}
+}
+function drawPerson(){
+ let x=p.x,y=p.y,col=(skins.find(s=>s.id===skin)||skins[0]).color;
+ ctx.save();ctx.translate(x+p.w/2,y+p.h);let run=Math.sin(frame*.32)*5,air=!p.onGround;
+ // legs
+ ctx.strokeStyle='#26354b';ctx.lineWidth=7;ctx.lineCap='round';
+ ctx.beginPath();ctx.moveTo(-7,-17);ctx.lineTo(air?-15:-8+run,-2);ctx.moveTo(7,-17);ctx.lineTo(air?15:8-run,-2);ctx.stroke();
+ if(kind==='cat'||kind==='dog'||kind==='fox'){
+  ctx.fillStyle=col;ctx.beginPath();ctx.ellipse(0,-39,19,22,0,0,7);ctx.fill();ctx.beginPath();ctx.moveTo(-13,-54);ctx.lineTo(-17,-72);ctx.lineTo(-3,-60);ctx.fill();ctx.beginPath();ctx.moveTo(13,-54);ctx.lineTo(17,-72);ctx.lineTo(3,-60);ctx.fill();
+  ctx.fillStyle='#172235';ctx.beginPath();ctx.arc(-6,-42,2.5,0,7);ctx.arc(6,-42,2.5,0,7);ctx.fill();ctx.fillStyle='#f8a6aa';ctx.beginPath();ctx.arc(0,-34,3,0,7);ctx.fill();
+  ctx.strokeStyle=col;ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(13,-20);ctx.quadraticCurveTo(29,-28,22,-42);ctx.stroke();
+ }else{
+  ctx.fillStyle=col;ctx.beginPath();ctx.roundRect(-14,-51,28,34,9);ctx.fill();
+  ctx.fillStyle=kind==='girl'?'#633e48':'#dcae83';ctx.beginPath();ctx.arc(0,-65,14,0,7);ctx.fill();
+  ctx.fillStyle=kind==='girl'?'#4b2944':'#3c2b27';ctx.beginPath();ctx.arc(0,-69,14,Math.PI,Math.PI*2);ctx.fill();if(kind==='girl'){ctx.beginPath();ctx.arc(-12,-57,7,0,7);ctx.fill()}
+  ctx.fillStyle='#172235';ctx.beginPath();ctx.arc(-5,-64,1.8,0,7);ctx.arc(5,-64,1.8,0,7);ctx.fill();
+  ctx.strokeStyle=col;ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(-12,-43);ctx.lineTo(-20,-28+(air?-8:0));ctx.moveTo(12,-43);ctx.lineTo(20,-29+(air?-8:0));ctx.stroke();
+ }
+ ctx.restore();
+ ctx.font='bold 13px system-ui';ctx.textAlign='center';ctx.fillStyle='#13253b';ctx.fillText(name,x+p.w/2,y-9);ctx.fillStyle='white';ctx.fillText(name,x+p.w/2-1,y-10);
+}
+function drawObstacles(){for(let o of obstacles){if(o.type==='spike'){ctx.fillStyle='#eaf0f5';ctx.strokeStyle='#64748b';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(o.x,ground);ctx.lineTo(o.x+o.w/2,ground-o.h);ctx.lineTo(o.x+o.w,ground);ctx.closePath();ctx.fill();ctx.stroke()}else if(o.type==='bomb'){ctx.fillStyle='#303b4c';ctx.beginPath();ctx.arc(o.x+19,ground-19,17,0,7);ctx.fill();ctx.strokeStyle='#f5b66c';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(o.x+20,ground-35);ctx.quadraticCurveTo(o.x+31,ground-48,o.x+37,ground-42);ctx.stroke();ctx.fillStyle='#ffdf7a';ctx.beginPath();ctx.arc(o.x+37,ground-42,4,0,7);ctx.fill()}else{ctx.fillStyle='#152238';ctx.fillRect(o.x,ground-2,o.w,34);ctx.strokeStyle='#d9c99e';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(o.x,ground);ctx.lineTo(o.x+o.w,ground);ctx.stroke()}}}
+function render(){ctx.clearRect(0,0,W,H);drawBackground();drawObstacles();coins.forEach(o=>{ctx.fillStyle='#ffd166';ctx.beginPath();ctx.arc(o.x,o.y,11,0,7);ctx.fill();ctx.strokeStyle='#fff3bd';ctx.lineWidth=3;ctx.stroke()});powers.forEach(o=>{ctx.font='25px sans-serif';ctx.fillText(o.type==='shield'?'🛡️':'🧲',o.x,o.y)});if(shield>0){ctx.strokeStyle='#7be7ff';ctx.lineWidth=4;ctx.beginPath();ctx.arc(p.x+21,p.y+31,34,0,7);ctx.stroke()}drawPerson();particles=particles.filter(q=>q.life-->0);particles.forEach(q=>{q.x+=q.vx;q.y+=q.vy;ctx.fillStyle=q.color;ctx.fillRect(q.x,q.y,4,4)});if(mode==='over'){ctx.fillStyle='#111b2c99';ctx.fillRect(0,0,W,H)}}
+function tick(){if(mode==='play'){frame++;score+=.12;speed=Math.min(12,5+score/95);level=1+Math.floor(score/100);if(frame%Math.max(42,Math.floor(95-speed*3))===0)addObstacle();if(frame%75===0)coins.push({x:W+15,y:ground-65-Math.random()*125});if(frame%390===0)powers.push({x:W+15,y:ground-100,type:Math.random()<.5?'shield':'magnet'});p.vy+=.72;p.y+=p.vy;if(p.y>=ground-p.h){p.y=ground-p.h;p.vy=0;p.onGround=true}else p.onGround=false;obstacles.forEach(o=>o.x-=speed);coins.forEach(o=>o.x-=speed);powers.forEach(o=>o.x-=speed);obstacles=obstacles.filter(o=>o.x+o.w>0);coins=coins.filter(o=>o.x>-20);powers=powers.filter(o=>o.x>-30);collect();powers=powers.filter(o=>{if(Math.hypot(p.x+20-o.x,p.y+25-o.y)<35){if(o.type==='shield')shield=600;else magnet=600;beep(650);say(o.type==='shield'?'Perisai aktif!':'Magnet koin aktif!');return false}return true});if(shield>0)shield--;if(magnet>0)magnet--;if(collision()){if(shield>0){shield=0;obstacles.shift();beep(220)}else{mode='over';let gained=Math.floor(score/12);wallet+=gained;best=Math.max(best,Math.floor(score));localStorage.krBest=best;save();hud();showOverlay('GAME OVER',name+' mendapat '+gained+' koin. Skor: '+Math.floor(score),'MAIN LAGI');say('Permainan selesai! Koin +'+gained);}}hud()}render();requestAnimationFrame(tick)}
+$('overlayBtn').onclick=()=>{if(mode==='pause'){mode='play';hideOverlay()}else start()};
+$('jumpBtn').onclick=jump;$('pauseBtn').onclick=pause;$('musicBtn').onclick=musicToggle;$('shopBtn').onclick=()=>{$('shopPanel').style.display=$('shopPanel').style.display==='block'?'none':'block';renderShop()};$('dailyBtn').onclick=daily;$('scoresBtn').onclick=showScores;
+$('playerName').oninput=e=>{name=e.target.value.trim().slice(0,12)||'Runner'};$('world').onchange=e=>world=e.target.value;$('kind').onchange=e=>{kind=e.target.value;skin='mint'};
+c.addEventListener('pointerdown',()=>{if(mode==='play')jump()});document.addEventListener('keydown',e=>{if(e.code==='Space'||e.code==='ArrowUp'){e.preventDefault();jump()}if(e.code==='Escape')pause()});
+hud();renderShop();showOverlay('KOMBILING RUN','Pilih nama dan karakter. Lalu hindari jebakan dan kumpulkan koin!','MULAI MAIN');tick();
+})();
+</script>
+</body>
+</html>
